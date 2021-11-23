@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 #Call necessary package
 library(xts) 
+library(tsbox)
 library(astsa) 
 library(tseries)
 library(magrittr)
@@ -32,6 +33,7 @@ head(df_daily)
 head(df_monthly)
 
 #Monthly data is more useable, for now we will use it. We should use daily data if we will use smoothing.
+tail(df_daily)
 tail(df_monthly)
 
 
@@ -39,25 +41,82 @@ tail(df_monthly)
 dim(df_monthly)
 
 #Statistical Measures of dataset
+summary(df_daily)
 summary(df_monthly)
+
 #Looks like there is one null value for price
 
 #Remove null values
+df_daily <- na.omit(df_daily)
 df_monthly <- na.omit(df_monthly)
+summary(df_daily)
 summary(df_monthly)
+
 #Row with null value has been successfully removed
 
-#Converting a dataframe into time series.
-natgas <- ts(df_monthly[,c(2)], start=c(1997, 1), end=c(2020, 8), frequency=12)
+#Converting the dataframes into time series.
+format =  "%Y-%m-%d"
+daily <- xts(df_daily[,-1], order.by=as.Date(df_daily[,1], format))
 
+monthly <- ts(df_monthly[,c(2)], start=c(1997, 1), end=c(2020, 8), frequency=12)
+
+
+
+par(mfrow = c(2,1))
 #Graph of the monthly data
-tsplot(natgas, ylim=c(-16,16), main="Monthly NatGas Prices")
+tsplot(monthly, ylim=c(0,20), main="Monthly vs Daily NatGas Prices")
+#daily
+#Graph of the daily data
+lines(daily, ylim=c(0,20), lwd=2, col=4)
+
+```
+
+
+### Not sinuisoidal! Data from January 1997 and August 2020, prices from
+```{r}
+trnd <- time(monthly)
+C <- cos(2*pi*trnd/4)
+S <- sin(2*pi*trnd/4)
+fit <- lm(monthly~ trnd + C + S, na.action = NULL)
+summary(monthly)
+tsplot(monthly, col = gray(.5))
+lines(fitted(fit), col = "red", lwd = 2)
+lines(lowess(trnd, monthly, f = .05), lwd = 2, col = "#1B842C")
+
+
+#TODO 1 Make moving average of the daily data so its weekly.
+#avgD = filter(daily,sides = 2, filter = rep(1/7, 7))
+
+#TODO 2 Get residuals and comment if it is white noise.
+#tsplot(diff(log(daily)), ylab="Daily NatGas Price Residuals", col=4)
+#abline(h = mean(diff(log(daily))), col=6)
+
+#TODO 3 Add something about ACF/Lag?
+
+#TODO 4 Add linear regression and trend line?
+#fit_monthly = lm(monthly$Price~0 + monthly$Date) #regression
+#min_yb = floor(min(monthly$Price)); 
+#max_yb = ceiling(max(monthly$Price)) #sets y-axis limit
+#plot(monthly$Date, y, ylim=c(min_yb,max_yb), type="l", main=paste("Linear Trend Plus Noise Series: ",i)) #plots
+#lines(monthly$Date, fitted(fit_b), col="blue") #fitted line (blue, solid)
+#lines(monthly$Date, mu_b, col="red",lty=2) #true mean (red, dashed)
+
+#TODO 5 Fit ARIMA model and Forecast 12 months (what kind of ARIMA model? what values of p,q,d?)
+
+
+#TODO 6 Add titles/labels for all graphs.
+
 ```
 ```{r}
-jj
+# Seasonal decomposition
+fit <- stl(monthly, s.window="period")
+plot(fit)
 
-df1
+# additional plots
+monthplot(daily)
+library(forecast)
 
-oil
+#Does the seasonplot make sense?
+seasonplot(monthly)
 ```
 
