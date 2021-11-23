@@ -1,0 +1,32 @@
+
+
+name: I have no idea how to use GITHUB I'm sorry y'all
+
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+library(astsa)
+
+#Import the dataset
+df<-read.csv("C:/Users/Angela Zhang/Desktop/daily_csv.csv")
+#Call necessary package
+library(astsa)
+
+#Inspect Data
+head(df)
+tail(df)
+
+#Get the dimensions of the dataset
+dim(df)
+
+#Statistical Measures of dataset
+summary(df)
+#Looks like there is one null value for price
+
+#Remove null values
+df1 <- na.omit(df)
+summary(df1)
+#Row with null value has been successfully removed
+
+
