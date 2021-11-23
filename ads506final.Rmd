@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 #Call necessary package
 library(xts) 
+library(tsbox)
 library(astsa) 
 library(tseries)
 library(magrittr)
@@ -40,18 +41,29 @@ dim(df_monthly)
 
 #Statistical Measures of dataset
 summary(df_monthly)
+summary(df_daily)
 #Looks like there is one null value for price
 
 #Remove null values
 df_monthly <- na.omit(df_monthly)
+df_daily <- na.omit(df_daily)
 summary(df_monthly)
+summary(df_daily)
 #Row with null value has been successfully removed
 
 #Converting a dataframe into time series.
-natgas <- ts(df_monthly[,c(2)], start=c(1997, 1), end=c(2020, 8), frequency=12)
+monthly <- ts(df_monthly[,c(2)], start=c(1997, 1), end=c(2020, 8), frequency=12)
 
+format =  "%Y-%m-%d"
+daily <- xts(df_daily[,-1], order.by=as.Date(df_daily[,1], format))
+
+par(mfrow = c(2,1))
 #Graph of the monthly data
-tsplot(natgas, ylim=c(-16,16), main="Monthly NatGas Prices")
+tsplot(monthly, ylim=c(-16,16), main="Monthly vs Daily NatGas Prices")
+#daily
+#Graph of the daily data
+lines((daily), lwd=2, col=4)
+
 ```
 ```{r}
 jj
