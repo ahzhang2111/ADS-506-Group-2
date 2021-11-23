@@ -1,0 +1,63 @@
+---
+title: "ads506final"
+author: "Angela Zhang, Martin Zagari, & Omar Elfeky"
+date: "11/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#Call necessary package
+library(xts) 
+library(astsa) 
+library(tseries)
+library(magrittr)
+library(ggplot2)
+library(urca)
+library(fpp2)
+library(tidyverse)
+library(forecast)
+```
+
+```{r}
+#Import the dataset
+#We should use a common path.
+#df<-read.csv("C:/Users/Angela Zhang/Desktop/daily_csv.csv")
+df_daily<-read.csv("C:/ADS-506-Group-2/natgas/daily_csv.csv")
+df_monthly<-read.csv("C:/ADS-506-Group-2/natgas/monthly_csv.csv")
+
+#Inspect Data
+
+head(df_daily)
+head(df_monthly)
+
+#Monthly data is more useable, for now we will use it. We should use daily data if we will use smoothing.
+tail(df_monthly)
+
+
+#Get the dimensions of the dataset
+dim(df_monthly)
+
+#Statistical Measures of dataset
+summary(df_monthly)
+#Looks like there is one null value for price
+
+#Remove null values
+df_monthly <- na.omit(df_monthly)
+summary(df_monthly)
+#Row with null value has been successfully removed
+
+#Converting a dataframe into time series.
+natgas <- ts(df_monthly[,c(2)], start=c(1997, 1), end=c(2020, 8), frequency=12)
+
+#Graph of the monthly data
+tsplot(natgas, ylim=c(-16,16), main="Monthly NatGas Prices")
+```
+```{r}
+jj
+
+df1
+
+oil
+```
+
