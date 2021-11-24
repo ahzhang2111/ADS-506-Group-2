@@ -67,7 +67,7 @@ par(mfrow = c(2,1))
 tsplot(monthly, ylim=c(0,20), main="Monthly vs Daily NatGas Prices")
 #daily
 #Graph of the daily data
-lines(daily, ylim=c(0,20), lwd=2, col=4)
+plot(daily, ylim=c(0,20), lwd=2, col=4)
 
 ```
 
