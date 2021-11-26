@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#Call necessary package
+#Import necessary package
 library(xts) 
 library(tsbox)
 library(astsa) 
@@ -17,6 +17,7 @@ library(ggplot2)
 library(urca)
 library(fpp2)
 library(tidyverse)
+library(forecast)
 library(forecast)
 ```
 
@@ -67,7 +68,7 @@ par(mfrow = c(2,1))
 tsplot(monthly, ylim=c(0,20), main="Monthly vs Daily NatGas Prices")
 #daily
 #Graph of the daily data
-lines(daily, ylim=c(0,20), lwd=2, col=4)
+plot(daily, ylim=c(0,20), lwd=2, col=4, main="Daily")
 
 ```
 
@@ -114,9 +115,38 @@ plot(fit)
 
 # additional plots
 monthplot(daily)
-library(forecast)
 
 #Does the seasonplot make sense?
 seasonplot(monthly)
+```
+
+```{r}
+# Plot of components
+plot(decompose(monthly)) 
+
+# Directly plotting a forecast of a model
+plot(forecast(auto.arima(monthly),12))
+
+# Time series specific plots
+ggseasonplot(monthly) + theme_minimal()
+
+ggmonthplot(monthly)
+```
+```{r}
+# fit an ARIMA model of order P, D, Q
+#fit <- arima(monthly, order=c(p, d, q))
+
+# Automated forecasting using an exponential model
+fit <- ets(monthly)
+
+# Automated forecasting using an ARIMA model
+fit <- auto.arima(monthly)
+
+# predictive accuracy
+accuracy(fit)
+
+# predict next 5 observations
+forecast(fit, 5)
+#plot(forecast(fit, 5))
 ```
 
