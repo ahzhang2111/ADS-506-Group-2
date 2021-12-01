@@ -146,8 +146,8 @@ fit <- auto.arima(monthly)
 # predictive accuracy
 accuracy(fit)
 
-# predict next 5 observations
-forecast(fit, 5)
+# predict next 5 observations DOES NOT WORK 
+#forecast(fit, 5)
 #plot(forecast(fit, 5))
 ```
 
