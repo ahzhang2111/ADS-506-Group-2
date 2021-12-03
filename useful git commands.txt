@@ -1,0 +1,38 @@
+#Update/pull other people's changes into your local copy, do this often!
+git pull
+
+#To show all local and remote branches
+git branch -a
+
+#Before commiting a change to your local branch you have to add the files to the commit
+git add filename
+
+#Commit/save the changes to the local branch
+git commit
+
+#After your local changes are commited and you can send/push it to update the remote.
+git push
+
+#To change which branch you are working on (i.e. main versus personal branch).
+git checkout branchname
+
+#Show which local files changed, and commited compared to the last "pulled" changes
+git status
+
+#This shows the text changes WITHIN the files. You use this to do a side by side comparison of changes.
+git diff
+
+#To change diff tool. I like winmerge but there are others like beyond compare. 
+#This is necessary when there is a conflict. The default diff tool is vim which is not user friendly.
+git config --global diff.tool bc3
+git config --global merge.tool bc3
+git config --global --add difftool.prompt false
+
+#To loose all your local changes (reset to master)
+git clean -xdf
+The -x  flag removes all untracked files, including ignored build directories.
+The -d  flag allows Git to recurse into untracked directories when no path is specified.
+The -f  flag overwrites the default Git clean configuration and starts cleaning untracked files and directories.
+OR
+#hard reset of local changes
+git branch .
