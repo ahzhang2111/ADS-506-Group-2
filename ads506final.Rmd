@@ -215,10 +215,11 @@ Unfortunately, even with transformation and double-differening the errors appear
 library(astsa)
 
 BrentPrice <-read.csv("C:/ADS-506-Group-2/natgas/BrentPrice.csv")
-#BrentPrice <- na.omit(BrentPrice)
+BrentPrice <- na.omit(BrentPrice)
 BrentPrice %>% drop_na()
 oilformat =  "%d-%h-%y"
 BrentPrice$Date <- as.Date(BrentPrice$Date, oilformat)
+BrentPrice$Date
 str(BrentPrice)
 dailyBr <- xts(BrentPrice$Price, BrentPrice$Date)
 dailyBr2 <- ts(dailyBr)
