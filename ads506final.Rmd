@@ -14,10 +14,9 @@ library(astsa)
 library(tseries)
 library(magrittr)
 library(ggplot2)
-library(urca)
-library(fpp2)
+#library(urca)
+#library(fpp2)
 library(tidyverse)
-library(forecast)
 library(forecast)
 ```
 
@@ -58,7 +57,8 @@ summary(df_monthly)
 #Converting the dataframes into time series.
 format =  "%Y-%m-%d"
 daily <- xts(df_daily[,-1], order.by=as.Date(df_daily[,1], format))
-
+daily2 <- ts(daily)
+str(daily)
 monthly <- ts(df_monthly[,c(2)], start=c(1997, 1), end=c(2020, 8), frequency=12)
 
 
@@ -84,7 +84,18 @@ summary(monthly)
 tsplot(monthly, col = gray(.5))
 lines(fitted(fit), col = "red", lwd = 2)
 lines(lowess(trnd, monthly, f = .05), lwd = 2, col = "#1B842C")
+```
 
+
+```{r}
+
+#Examine the plots of transformed and differenced data
+tsplot(monthly, main = "Gas Price (mo)")
+tsplot(sqrt(monthly), main = "Sqrt Gas Price (mo)")
+tsplot(log(monthly), main = "Log Gas Price (mo)")
+tsplot(diff(monthly), main = "Differenced Gas Price (mo)")
+tsplot(diff(log(monthly)), main = "Differenced Logged Gas Price (mo)")
+tsplot(diff(sqrt(monthly)), main = "Differenced Sqrt Gas Price (mo)")
 
 #TODO 1 Make moving average of the daily data so its weekly.
 #avgD = filter(daily,sides = 2, filter = rep(1/7, 7))
@@ -109,6 +120,38 @@ lines(lowess(trnd, monthly, f = .05), lwd = 2, col = "#1B842C")
 #TODO 6 Add titles/labels for all graphs.
 
 ```
+
+```{r}
+#Examine the plots of transformed and differenced data
+tsplot(daily2, main = "Gas Price (daily)")
+tsplot(sqrt(daily2), main = "Sqrt Gas Price (daily)")
+tsplot(log(daily2), main = "Log Gas Price (daily)")
+tsplot(diff(daily2), main = "Differenced Gas Price (daily)")
+tsplot(diff(log(daily2)), main = "Differenced Logged Gas Price (daily)")
+tsplot(diff(sqrt(daily2)), main = "Differenced Sqrt Gas Price (daily)")
+```
+
+
+For the following code, the slow, linear decay in the ACF of the MONTHLY data strongly suggest that differencing is needed.
+Unfortunately, the ACF2 plot of the differenced data are ambiguous, with neither the ACF nor the PACF showing clear cut-off or tailing off.  (Double differencing was performed for completeness and show the introduction of what are likely artifactual dependencies).
+
+```{r}
+acf2(monthly)
+acf2(diff(monthly))
+acf2(diff(diff(monthly)))
+```
+
+
+```{r}
+acf2(daily2)
+acf2(diff(daily2))
+acf2(diff(diff(daily2)))
+```
+
+
+
+
+
 ```{r}
 # Seasonal decomposition
 fit <- stl(monthly, s.window="period")
@@ -125,6 +168,10 @@ seasonplot(monthly)
 # Plot of components
 plot(decompose(monthly)) 
 
+#MZ Try multiplicative decompositon since errors are not "white noisy".  The error is much smaller with the multiplicative model (see scale) and the seasonal compoenent is somewhat larger
+plot(decompose(monthly, type = "multiplicative")) #MZ Addition
+
+
 # Directly plotting a forecast of a model
 plot(forecast(auto.arima(monthly),12))
 
@@ -138,7 +185,7 @@ ggmonthplot(monthly)
 #fit <- arima(monthly, order=c(p, d, q))
 
 # Automated forecasting using an exponential model
-fit <- ets(monthly)
+#fit <- ets(monthly)
 
 # Automated forecasting using an ARIMA model
 fit <- auto.arima(monthly)
@@ -149,5 +196,123 @@ accuracy(fit)
 # predict next 5 observations DOES NOT WORK 
 #forecast(fit, 5)
 #plot(forecast(fit, 5))
+```
+
+
+QUESTION 5.3:  *********************************
+Crude oil prices in dollars per barrel are in oil. Fit an ARIMA(p,d,q) model to the growth rate performing all necessary diagnostics. Comment.
+
+STEPS 1 and 2: Plotting and transforming.
+
+Due to periodic large excursions in growth rates as well as substanial non-linear trend, the data appear to benefit from both log transformation and differencing, as shown below.  In particular, differencing alone appears to leave a non-constant variance in the differences, which is ameliorated with transforming with log first and then differencing.
+
+Unfortunately, even with transformation and double-differening the errors appear autocorrelated, so we may have to look at a linear model followed by ARMA for the residuals.
+
+
+
+```{r}
+
+library(astsa)
+
+BrentPrice <-read.csv("C:/ADS-506-Group-2/natgas/BrentPrice.csv")
+#BrentPrice <- na.omit(BrentPrice)
+BrentPrice %>% drop_na()
+oilformat =  "%d-%h-%y"
+BrentPrice$Date <- as.Date(BrentPrice$Date, oilformat)
+str(BrentPrice)
+dailyBr <- xts(BrentPrice$Price, BrentPrice$Date)
+dailyBr2 <- ts(dailyBr)
+plot(dailyBr)
+tsplot(dailyBr2)
+
+#monthlyBr <- ts(brpr[,c(2)], start=c(1997, 1), end=c(2020, 8), frequency=12)
+
+oil
+tsplot(oil)
+tsplot(log(oil))
+tsplot(diff(oil))
+tsplot(diff(log(oil)))
+tsplot(diff(sqrt(oil)))
+
+#u <- length(oil) - 132
+#gdp2 <- ts(gdp[u:length(gdp)], start = c(1947 + floor(u/4), u %% 4), frequency=4)
+oilcut <- ts(oil[1:449], start = 2000, frequency=52)
+tsplot(oilcut)
+tsplot(diff(oilcut))
+tsplot(diff(diff(oilcut)))
+```
+
+
+STEP 3: Identifying the dependence orders of the model:
+
+The elephant in the room for this data is the huge instability starting in 2007. To help understand how that will impact the modeling, we start by looking at the oil price data BEFORE the crash and recovery.  For this, we excluded the period from 2009 forward and looked at the data, called "oil2" below.
+
+We see that the PACF cuts off at 2 for the double differenced data, suggesting an AR2. But it is ambiguous.  One might also see an MA2.  So we try both.
+
+As we suspected, they are quite similar.  For the AR2, both terms are significant, but both terms are also significant in the MA2 model.  The SE is slightly better for the MA (0.00157 vs 0.00158) and the residuals look pretty white with some outliers.  The QQ plot is better for the MA2 model, so that becomes our "baseline" but barely beating the AR2.
+
+Adding a third term to the AR or MA doesn't seem to help much.
+
+
+```{r}
+acf2(log(oilcut))
+acf2(diff(log(oilcut)))
+acf2(diff(diff(log(oilcut))))
+sarima(diff(log(oilcut)), p=2, d=0, q=0, no.constant=TRUE)
+sarima(diff(log(oilcut)), p=0, d=0, q=2, no.constant=TRUE)
+```
+
+
+```{r}
+sarima(diff(log(oilcut)), p=3, d=0, q=0, no.constant=TRUE)
+sarima(diff(log(oilcut)), p=0, d=0, q=3, no.constant=TRUE)
+```
+
+STEP 3 continued:
+
+Now we look at the full data.
+
+ACF appears to cut-off at 3 while PACF drifts downward for the double differenced data, now suggesting an MA3. It is a bit less clear with single differencing. 
+
+```{r}
+acf2(diff(log(oil)))
+acf2(diff(diff(log(oil))))
+```
+
+
+Looking at the various models, starting with the ARIMA(0,2,3), we see what we feared might be the case: outlier variance in all of the diagnostics.  Models with lower terms than 3 appear to underfit.  None of the models are great, but the ARIMA(1,2,2) appears to outperform the the ARIMA(0,2,3) and ARIMA(2,2,1) by small margins.  The improved QQ plot for ARIMA(0,2,3) is the strongest factor leading to choose this model since it suggests minimal or no accumulated autocorrelation for at least 6-7 weeks and there would be no reason to imagine some other correlation of errors for longer periods.
+
+
+
+
+```{r}
+sarima(diff(log(oil)), p=0, d=1, q=3, no.constant=TRUE)
+sarima(diff(log(oil)), p=0, d=1, q=1, no.constant=TRUE)
+sarima(diff(log(oil)), p=0, d=1, q=1, no.constant=TRUE)
+sarima(diff(log(oil)), p=1, d=1, q=0, no.constant=TRUE)
+sarima(diff(log(oil)), p=1, d=1, q=1, no.constant=TRUE)
+sarima(diff(log(oil)), p=1, d=1, q=2, no.constant=TRUE)
+sarima(diff(log(oil)), p=2, d=1, q=1, no.constant=TRUE)
+```
+
+
+
+Finally, with correlated errors, it might be useful to fit a standard lm and then fit a TS model to the residuals to see if we can do better.
+
+After fitting a trend between oil and time, the cut off at lag 2 in the PACF suggests an AR2 for the residuals.  
+
+After running the model on the residuals, there does not appear to be any real improvement or advantage to using this technique, which is not surprising since we did not really have any regressors except time, so we only really fit our initial regression to the trend.  But still it was fun since both AR(2) terms and the MA(1) term were still significant, and the diagnostics suggested that the ARIMA(2,0,1) was the best model for the detrended data, and the trend was significant. So this was really just an alternative way to (vs differencing) to remove trend, and fit an AR2 model to the data.  At least that's my read of it.
+
+
+
+```{r}
+tsplot(log(oil))
+oill <- ts(log(oil))
+trend=time(oill)
+fit = lm(oill ~ trend)
+acf2(resid(fit), 52)
+sarima(oil, 2, 0, 0, xreg = trend)
+sarima(oil, 2, 0, 1, xreg = trend)
+sarima(oil, 3, 0, 0, xreg = trend)
 ```
 
