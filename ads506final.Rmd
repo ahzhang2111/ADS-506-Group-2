@@ -21,15 +21,14 @@ library(forecast)
 library(x12)
 ```
 
+
+
 ```{r}
 #Import the dataset
-#We should use a common path.
-#df<-read.csv("C:/Users/Angela Zhang/Desktop/daily_csv.csv")
 df_daily<-read.csv("C:/ADS-506-Group-2/natgas/daily_csv.csv")
 df_monthly<-read.csv("C:/ADS-506-Group-2/natgas/monthly_csv.csv")
 
 #Inspect Data
-
 head(df_monthly)
 
 #Monthly data is more useable, for now we will use it. We should use daily data if we will use smoothing.
@@ -61,6 +60,23 @@ tsplot(monthly, ylim=c(0,20), main="MonthlyNatGas Prices")
 #plot(daily, ylim=c(0,20), lwd=2, col=4)
 ```
 
+Initial exploration of data for random walk process
+```{r}
+acf2(monthly)
+acf2(diff(monthly))
+tsplot(diff(monthly), main = "Differenced data showing sawtooth pattern")
+adf.test(monthly, k=0)
+adf.test(monthly)
+pp.test(monthly)
+
+adf.test(diff(monthly), k=0)
+adf.test(diff(monthly))
+pp.test(diff(monthly))
+
+```
+
+
+
 
 ### Not sinuisoidal! Data from January 1997 and August 2020, prices from
 ```{r}
@@ -75,6 +91,9 @@ tsplot(monthly, col = gray(.5))
 lines(fitted(fit), col = "red", lwd = 2)
 lines(lowess(trnd, monthly, f = .05), lwd = 2, col = "#1B842C")
 ```
+
+
+
 
 
 ```{r}
@@ -102,6 +121,8 @@ lines(lowess(trnd, monthly, f = .05), lwd = 2, col = "#1B842C")
 #TODO 6 Add titles/labels for all graphs.
 
 ```
+
+Examining and testing the data for stationarity
 
 ```{r}
 
@@ -169,15 +190,39 @@ acf2(diff(mo_2001_2010))
 acf2(mo_after_2010)
 acf2(diff(mo_after_2010))
 
-#Based on the literature suggesting an ARIMA(2,1,2) as a benchmark, we started there.  It seems the best fit is MA2 with one difference.
+```
+
+
+```{r}
+#Based on the literature suggesting an ARIMA(2,1,2) as a benchmark, we started there.
+
+#    Estimate     SE  t.value p.value
+#ar1  -0.9786 0.0241 -40.6271       0
+#ma1   0.9468 0.0390  24.2906       0
+
+tsplot(monthly)
 sarima(monthly, p=2, d=1, q=2, no.constant=TRUE)
+psi = ARMAtoMA(ar = c(-0.9786), ma = c(0.9468), 50)
+psi
+
+#lower orders
+sarima(monthly, p=1, d=1, q=0, no.constant=TRUE)
+sarima(monthly, p=0, d=1, q=1, no.constant=TRUE)
+sarima(monthly, p=1, d=1, q=1, no.constant=TRUE)
 sarima(monthly, p=1, d=1, q=2, no.constant=TRUE)
-sarima(monthly, p=0, d=1, q=2, no.constant=TRUE)
-sarima(monthly, p=0, d=1, q=3, no.constant=TRUE)
-sarima(monthly, p=2, d=0, q=2, no.constant=TRUE)
+sarima(monthly, p=2, d=1, q=1, no.constant=TRUE)
+
+
+#higher orders
+sarima(monthly, p=3, d=1, q=2, no.constant=TRUE)
+sarima(monthly, p=2, d=1, q=3, no.constant=TRUE)
+sarima(monthly, p=3, d=1, q=3, no.constant=TRUE)
+
+
 #u <- length(monthly) - 132
 #monthly2 <- ts(monthly[u:length(monthly)], start = c(1947 + floor(u/4), u %% 4), frequency=4)
 ```
+
 
 
 ```{r}
@@ -212,8 +257,22 @@ colnames(df_comp.joint) =  c("NatGas Price","S&P 500 Price Index")
 plot(df_comp.joint , yax.flip=T, main = "Timeseries plot of NatGas Price and S&P 500 Price Index")
 ```
 
+Exploring a seasonal pattern in the data.
+```{r}
+acf2(diff(diff(monthly),12))
+```
+
+```{r}
+sarima(monthly, p=1, d=1, q=1, P=0, D=1, Q=1, S=12, no.constant=TRUE)
+sarima(monthly, p=1, d=1, q=1, P=1, D=1, Q=2, S=12, no.constant=TRUE)
+```
 
 
+```{r}
+sarima.for(monthly,60, 1,1,1, P=1,D=1,Q=2, 12, plot.all=TRUE, main = "60 month seasonal forecast for nat gas")
+abline(h = mean(monthly), lwd=3, col=2, lty=2)
+#abline(0, col="red", lwd=3, lty=2)
+```
 
 NEW
 SEGMENTING THE DAILY(XTS) TIME SERIES BY PERIOD
@@ -246,10 +305,9 @@ sarima(daily, p=1, d=1, q=2, no.constant=TRUE)
 sarima(daily, p=0, d=1, q=2, no.constant=TRUE)
 sarima(daily, p=0, d=1, q=3, no.constant=TRUE)
 ```
-QUESTION 5.3:  *********************************
-Crude oil prices in dollars per barrel are in oil. Fit an ARIMA(p,d,q) model to the growth rate performing all necessary diagnostics. Comment.
 
-STEPS 1 and 2: Plotting and transforming.
+
+STEPS 1 and 2: Plotting and transforming oil vs natgas prices.
 
 Due to periodic large excursions in growth rates as well as substanial non-linear trend, the data appear to benefit from both log transformation and differencing, as shown below.  In particular, differencing alone appears to leave a non-constant variance in the differences, which is ameliorated with transforming with log first and then differencing.
 
@@ -258,9 +316,6 @@ Unfortunately, even with transformation and double-differening the errors appear
 
 ##### We need to change the below to use monthly data.
 ```{r, eval = FALSE}
-
-library(astsa)
-
 BrentPrice <-read.csv("C:/ADS-506-Group-2/natgas/BrentPrice.csv")
 BrentPrice <- na.omit(BrentPrice)
 BrentPrice %>% drop_na()
@@ -271,8 +326,12 @@ dailyBr <- xts(BrentPrice$Price, BrentPrice$Date)
 dailyBr1 <- dailyBr["/2000-6-30"]
 dailyBr2 <- dailyBr["2000-07-01/2010-12-30"]
 dailyBr3 <- dailyBr["/2011-01-01"]
+monthlyBr <- to.monthly(dailyBr)
 
 dailyBoth <- merge(daily, dailyBr, join = "inner")
+monthlyBoth <- merge(monthly, monthlyBr$dailyBr.Close, join = "inner")
+head(monthlyBoth)
+plot(monthlyBoth)
 plot(dailyBoth)
 head(dailyBoth)
 
@@ -293,6 +352,24 @@ grangertest(dailyBr ~ daily, order = 10, data = dailyBoth)
 grangertest(dailyBr ~ daily, order = 20, data = dailyBoth)
 grangertest(dailyBr ~ daily, order = 50, data = dailyBoth)
 grangertest(dailyBr ~ daily, order = 100, data = dailyBoth)
+
+
+grangertest(x ~ dailyBr.Close, order = 1, data = monthlyBoth)
+grangertest(x ~ dailyBr.Close, order = 2, data = monthlyBoth)
+grangertest(x ~ dailyBr.Close, order = 3, data = monthlyBoth)
+grangertest(x ~ dailyBr.Close, order = 4, data = monthlyBoth)
+grangertest(x ~ dailyBr.Close, order = 5, data = monthlyBoth)
+grangertest(x ~ dailyBr.Close, order = 6, data = monthlyBoth)
+grangertest(x ~ dailyBr.Close, order = 9, data = monthlyBoth)
+grangertest(x ~ dailyBr.Close, order = 12, data = monthlyBoth)
+grangertest(dailyBr.Close ~ x, order = 1, data = monthlyBoth)
+grangertest(dailyBr.Close ~ x, order = 2, data = monthlyBoth)
+grangertest(dailyBr.Close ~ x, order = 3, data = monthlyBoth)
+grangertest(dailyBr.Close ~ x, order = 4, data = monthlyBoth)
+grangertest(dailyBr.Close ~ x, order = 5, data = monthlyBoth)
+grangertest(dailyBr.Close ~ x, order = 6, data = monthlyBoth)
+grangertest(dailyBr.Close ~ x, order = 9, data = monthlyBoth)
+grangertest(dailyBr.Close ~ x, order = 12, data = monthlyBoth)
 
 #monthlyBr <- ts(brpr[,c(2)], start=c(1997, 1), end=c(2020, 8), frequency=12)
 
